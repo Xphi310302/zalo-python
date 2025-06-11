@@ -1,16 +1,18 @@
 import time
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 import openpyxl as xl
 
-# Path to chromedriver executable
-path = "/usr/local/bin/geckodriver"
+# Path to Firefox executable
+firefox_path = "/usr/local/bin/firefox"
 
-ser = Service(path)
+# Set up Firefox options
+options = Options()
+options.binary_location = firefox_path
 
-# Initialize the Chrome webdriver
-browser = webdriver.Chrome(service=ser)
+# Initialize the Firefox webdriver
+browser = webdriver.Firefox(options=options)
 
 # Opening the Zalo website
 browser.get("https://chat.zalo.me/")
