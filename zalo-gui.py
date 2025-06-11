@@ -14,6 +14,7 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
+from vietnamese_to_telex import vietnamese_to_telex
 from webdriver_manager.firefox import GeckoDriverManager
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
@@ -131,7 +132,7 @@ def initialize_browser(headless=False):
 
         # Try browsers in order of preference
         browser_instance = None
-        browsers_to_try = ["firefox", "chrome", "edge"]
+        browsers_to_try = ["edge", "firefox", "chrome"]
 
         for browser_name in browsers_to_try:
             try:
@@ -350,14 +351,19 @@ def process_phone_number(
 
                 # Use PyAutoGUI to type the message (simulates actual keyboard typing)
                 time.sleep(0.5)
-                message_text = message_template.replace("{i}", str(i + 1))
+                message_text = vietnamese_to_telex(
+                    message_template.replace("{i}", str(i + 1))
+                )
 
                 # Clear any existing text first
                 rich_input.clear()
 
                 # Type the message using PyAutoGUI with interval
-                pyautogui.write(message_text, interval=0.1)
-                print(f"Typed message using PyAutoGUI: {message_text}")
+
+                pyautogui.write(message_text, interval=0.01)
+                print(
+                    f"Typed message using PyAutoGUI: {message_template.replace('{i}', str(i + 1))}"
+                )
 
                 # Wait a moment for the UI to update after typing
                 time.sleep(0.1)
@@ -532,7 +538,7 @@ with tab1:
     # Message template
     message_template = st.text_area(
         "Message Template",
-        "Hello! This is automated message #{i}",
+        "Chào bạn, đây là tin nhắn tự động #{i}",
         help="Use {i} as a placeholder for the message number",
     )
 
