@@ -64,6 +64,18 @@ if "csv_path" not in st.session_state:
         f"zalo_status_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     )
 
+# Default delay times (in seconds)
+if "delay_times" not in st.session_state:
+    st.session_state.delay_times = {
+        "page_load": 10,
+        "after_click": 2,
+        "after_search": 2,
+        "after_message_button": 2,
+        "between_messages": 2,
+        "after_send": 1.0,  # Make sure this is a float
+        "between_contacts": 40,
+    }
+
 
 # Function to update status and export to CSV
 def update_status(phone_number, status, rerun=False):
@@ -185,7 +197,7 @@ def initialize_browser(headless=False):
         print("Browser initialized and navigated to Zalo")
 
         # Wait for the page to load (important for Zalo)
-        time.sleep(10)
+        time.sleep(st.session_state.delay_times["page_load"])
         print("Initial page load wait completed")
 
         # Store the browser in session state
@@ -199,9 +211,12 @@ def initialize_browser(headless=False):
 
 # Function to run the automation for a single phone number
 def process_phone_number(
-    browser_instance, phone_number, message_template, message_count
+    browser_instance, phone_number, message_template, message_count, delay_times=None
 ):
     # Use the passed browser instance instead of the global one
+    # Use provided delay times or defaults from session state
+    if delay_times is None:
+        delay_times = st.session_state.delay_times
     try:
         # First navigate to the main page to ensure we're in the right context
         print("Navigating to main Zalo page...")
@@ -230,7 +245,7 @@ def process_phone_number(
             print("Add friend button found, clicking...")
             add_friend_button.click()
             print("Add friend button clicked successfully")
-            time.sleep(2)
+            time.sleep(delay_times["after_click"])
 
             # Take another screenshot after clicking
             # browser_instance.save_screenshot(f"zalo_after_click_{phone_number}.png")
@@ -275,7 +290,7 @@ def process_phone_number(
             search_button.click()
             print("Search button clicked successfully")
             # browser_instance.save_screenshot(f"search_clicked_{phone_number}.png")
-            time.sleep(2)  # Wait for search results
+            time.sleep(delay_times["after_search"])  # Wait for search results
         except Exception as e:
             print(f"Error clicking search button: {str(e)}")
             # browser_instance.save_screenshot(f"search_button_error_{phone_number}.png")
@@ -293,7 +308,9 @@ def process_phone_number(
             message_button.click()
             print("Message button clicked successfully")
             # browser_instance.save_screenshot(f"message_clicked_{phone_number}.png")
-            time.sleep(2)  # Wait for chat window to open
+            time.sleep(
+                delay_times["after_message_button"]
+            )  # Wait for chat window to open
         except Exception as e:
             print(f"Error clicking message button: {str(e)}")
             # browser_instance.save_screenshot(f"message_button_error_{phone_number}.png")
@@ -352,6 +369,9 @@ def process_phone_number(
                         rich_input.send_keys(Keys.RETURN)
                         print(f"Message {i + 1} sent using Selenium Keys.RETURN")
                         messages_sent += 1
+
+                # Wait between messages
+                time.sleep(delay_times["between_messages"])
 
             except Exception as e:
                 print(f"Error sending message {i + 1}: {str(e)}")
@@ -431,7 +451,11 @@ def run_automation(phone_numbers, message_template, message_count, wait_time):
             st.info(f"Calling process_phone_number for {phone_number}")
             print(f"Calling process_phone_number for {phone_number}")
             result = process_phone_number(
-                st.session_state.browser, phone_number, message_template, message_count
+                st.session_state.browser,
+                phone_number,
+                message_template,
+                message_count,
+                delay_times=st.session_state.delay_times,
             )
             st.info(f"process_phone_number completed with result: {result}")
             print(f"process_phone_number completed with result: {result}")
@@ -483,9 +507,49 @@ with tab1:
     )
 
     # Wait time between contacts
-    wait_time = st.slider(
-        "Wait Time Between Contacts (seconds)", min_value=1, max_value=30, value=5
+    wait_time = st.number_input(
+        "Wait Time Between Contacts (seconds)", min_value=5, max_value=300, value=40
     )
+
+    # Advanced settings expander
+    with st.expander("Advanced Timing Settings"):
+        st.session_state.delay_times["page_load"] = st.slider(
+            "Page Load Wait Time (seconds)",
+            min_value=5,
+            max_value=30,
+            value=st.session_state.delay_times["page_load"],
+        )
+        st.session_state.delay_times["after_click"] = st.slider(
+            "Wait After Button Click (seconds)",
+            min_value=1,
+            max_value=10,
+            value=st.session_state.delay_times["after_click"],
+        )
+        st.session_state.delay_times["after_search"] = st.slider(
+            "Wait After Search (seconds)",
+            min_value=1,
+            max_value=10,
+            value=st.session_state.delay_times["after_search"],
+        )
+        st.session_state.delay_times["after_message_button"] = st.slider(
+            "Wait After Message Button (seconds)",
+            min_value=1,
+            max_value=10,
+            value=st.session_state.delay_times["after_message_button"],
+        )
+        st.session_state.delay_times["between_messages"] = st.slider(
+            "Wait Between Messages (seconds)",
+            min_value=1,
+            max_value=10,
+            value=st.session_state.delay_times["between_messages"],
+        )
+        st.session_state.delay_times["after_send"] = st.slider(
+            "Wait After Send (seconds)",
+            min_value=0.5,
+            max_value=5.0,
+            value=float(st.session_state.delay_times["after_send"]),
+            step=0.5,
+        )
 
     # Start/Stop button
     if st.session_state.is_running:
