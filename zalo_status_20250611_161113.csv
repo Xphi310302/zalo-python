@@ -1,7 +1,0 @@
-Phone Number,Status,Timestamp
-0368321314,Processing,2025-06-11 16:11:03
-0368321314,Failed - 'NoneType' object has no attribute 'get',2025-06-11 16:11:03
-0368321314,Processing,2025-06-11 16:11:13
-0368321314,Failed - 'NoneType' object has no attribute 'get',2025-06-11 16:11:13
-0368321314,Processing,2025-06-11 16:11:23
-0368321314,Failed - 'NoneType' object has no attribute 'get',2025-06-11 16:11:23

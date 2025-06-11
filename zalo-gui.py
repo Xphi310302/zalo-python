@@ -18,6 +18,21 @@ from webdriver_manager.firefox import GeckoDriverManager
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
+
+def naive_linechunk():
+    # Remove all CSV files in the current directory when starting the app
+    for file in os.listdir():
+        if file.endswith(".csv"):
+            try:
+                os.remove(file)
+                print(f"Removed old status file: {file}")
+            except Exception as e:
+                print(f"Error removing file {file}: {e}")
+
+
+# Run the function when defined
+naive_linechunk()
+
 # Set page config
 st.set_page_config(
     page_title="Zalo Automation Tool",
@@ -528,7 +543,7 @@ with tab1:
 
     # Wait time between contacts
     wait_time = st.number_input(
-        "Wait Time Between Contacts (seconds)", min_value=5, max_value=300, value=40
+        "Wait Time Between Contacts (seconds)", min_value=5, max_value=300, value=5
     )
 
     # Advanced settings expander
