@@ -46,7 +46,7 @@ try:
     time.sleep(1)
 except TimeoutException:
     print("Could not find the add friend button. Taking screenshot for debugging...")
-    browser.save_screenshot("error_add_friend.png")
+    # browser.save_screenshot("error_add_friend.png")
     print(
         "Page source:", browser.page_source[:500]
     )  # Print first 500 chars of page source
@@ -54,7 +54,7 @@ except TimeoutException:
 
 
 # Hard-coded phone numbers for mock testing
-phone_numbers = ["0368321314", "0348235724"]
+phone_numbers = ["913524579", "0368321314"]
 
 try:
     # Loop through each phone number
@@ -72,25 +72,35 @@ try:
             phone_input.send_keys(phone_number)
             print(f"Entered phone number: {phone_number}")
 
-            # Click "Tìm kiếm" (Search) button
-            print("Clicking search button...")
-            search_button = WebDriverWait(browser, 10).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, '//div[@data-id="btn_Main_AddFrd_Search"]')
+            # Try to click "Tìm kiếm" (Search) button
+            try:
+                print("Clicking search button...")
+                search_button = WebDriverWait(browser, 10).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, '//div[@data-id="btn_Main_AddFrd_Search"]')
+                    )
                 )
-            )
-            search_button.click()
-            print("Search button clicked successfully")
+                search_button.click()
+                print("Search button clicked successfully")
 
-            # Wait and click "Nhắn tin" (Message) button
-            print("Waiting for message button...")
-            message_button = WebDriverWait(browser, 10).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, '//div[@data-translate-inner="STR_CHAT"]')
-                )
-            )
-            message_button.click()
-            print("Message button clicked successfully")
+                # Try to click "Nhắn tin" (Message) button
+                try:
+                    print("Waiting for message button...")
+                    message_button = WebDriverWait(browser, 10).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, '//div[@data-translate-inner="STR_CHAT"]')
+                        )
+                    )
+                    message_button.click()
+                    print("Message button clicked successfully")
+                except Exception as e:
+                    print(f"Error clicking message button: {str(e)}")
+                    # browser.save_screenshot(f"message_button_error_{phone_number}.png")
+                    continue  # Skip to the next phone number
+            except Exception as e:
+                print(f"Error clicking search button: {str(e)}")
+                # browser.save_screenshot(f"search_button_error_{phone_number}.png")
+                continue  # Skip to the next phone number
 
             # Send multiple messages
             message_count = 3  # Reduced from 50 for testing
@@ -158,11 +168,11 @@ try:
 
                     except Exception as e:
                         print(f"Error sending message {i + 1}: {str(e)}")
-                        browser.save_screenshot(f"error_message_{phone_number}_{i}.png")
+                        # browser.save_screenshot(f"error_message_{phone_number}_{i}.png")
 
                 except Exception as e:
                     print(f"Error sending message {i + 1}: {str(e)}")
-                    browser.save_screenshot(f"error_message_{phone_number}_{i}.png")
+                    # browser.save_screenshot(f"error_message_{phone_number}_{i}.png")
 
             # Wait between contacts
             print(
@@ -186,12 +196,12 @@ try:
 
         except Exception as e:
             print(f"Error processing phone number {phone_number}: {str(e)}")
-            browser.save_screenshot(f"error_{phone_number}.png")
+            # browser.save_screenshot(f"error_{phone_number}.png")
             continue  # Continue with next phone number
 
 except Exception as e:
     print(f"Fatal error in main loop: {str(e)}")
-    browser.save_screenshot("fatal_error.png")
+    # browser.save_screenshot("fatal_error.png")
     sys.exit(1)
 
 # Print completion message and close the browser
