@@ -1,0 +1,3 @@
+@echo off
+echo Starting Zalo Automation Tool...
+start "" "zalo_app\Zalo Automation Tool.exe"
