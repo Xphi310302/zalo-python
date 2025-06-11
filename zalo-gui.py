@@ -349,23 +349,20 @@ def process_phone_number(
                 rich_input.click()
                 print("Clicked on rich input field")
 
-                # Use PyAutoGUI to type the message (simulates actual keyboard typing)
+                # Use PyAutoGUI to paste the message using Ctrl+V
                 time.sleep(0.5)
-                message_text = vietnamese_to_telex(
-                    message_template.replace("{i}", str(i + 1))
-                )
+                # message_text = vietnamese_to_telex(
+                #     message_template.replace("{i}", str(i + 1))
+                # )
 
                 # Clear any existing text first
                 rich_input.clear()
 
-                # Type the message using PyAutoGUI with interval
+                # Use Ctrl+V to paste the message
+                pyautogui.hotkey("ctrl", "v")
+                print(f"Pasted message using Ctrl+V")
 
-                pyautogui.write(message_text, interval=0.01)
-                print(
-                    f"Typed message using PyAutoGUI: {message_template.replace('{i}', str(i + 1))}"
-                )
-
-                # Wait a moment for the UI to update after typing
+                # Wait a moment for the UI to update after pasting
                 time.sleep(0.1)
 
                 # Try multiple methods to send the message
