@@ -57,6 +57,8 @@ if "phone_status" not in st.session_state:
     )
 if "is_running" not in st.session_state:
     st.session_state.is_running = False
+if "completed" not in st.session_state:
+    st.session_state.completed = False
 if "browser" not in st.session_state:
     st.session_state.browser = None
 if "csv_path" not in st.session_state:
@@ -300,7 +302,7 @@ def process_phone_number(
         # Try to click "Nhắn tin" (Message) button
         try:
             print("Waiting for message button...")
-            message_button = WebDriverWait(browser_instance, 10).until(
+            message_button = WebDriverWait(browser_instance, 3).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, '//div[@data-translate-inner="STR_CHAT"]')
                 )
@@ -399,32 +401,38 @@ def process_phone_number(
 
 
 # Function to run the automation process
-def run_automation(phone_numbers, message_template, message_count, wait_time):
-    st.info("Starting automation process...")
+def run_automation(
+    phone_numbers, message_template, message_count, wait_time, rerun=False
+):
+    # Store current automation instance to detect reruns
+    current_instance = st.session_state.automation_instance
+
+    # Create status placeholder for updates
+    status_placeholder = st.empty()
+    status_placeholder.info("Starting automation process...")
     print("Starting automation process...")
 
-    # Create a placeholder for status updates during automation
-    status_placeholder = st.empty()
-
-    # Initialize browser if not already initialized
-    if st.session_state.browser is None:
-        st.info("Initializing browser...")
+    # Initialize browser if needed
+    if "browser" not in st.session_state or st.session_state.browser is None:
+        status_placeholder.info("Initializing browser...")
         print("Initializing browser...")
-        success = initialize_browser()
-        if not success:
-            st.error(
-                "Failed to initialize browser. Please check your Firefox installation."
+        if not initialize_browser():
+            status_placeholder.error(
+                "Failed to initialize browser. Please check your browser installation."
             )
+            st.session_state.is_running = False
+            st.session_state.completed = True
             print("Browser initialization failed!")
             return
-        st.info("Browser initialized successfully")
+        status_placeholder.info("Browser initialized successfully")
         print("Browser initialized successfully")
 
+    # Use the browser from session state
     # Wait for Zalo to load and user to log in
-    st.info("Waiting for Zalo to load and user to log in (20 seconds)...")
+    status_placeholder.info("Waiting for Zalo to load and user to log in...")
     print("Waiting for Zalo to load and user to log in...")
-    time.sleep(20)
-    st.info("Wait complete, starting to process phone numbers")
+    time.sleep(st.session_state.delay_times["page_load"])
+    print("Wait complete, starting to process phone numbers")
     print("Wait complete, starting to process phone numbers")
 
     # Process each phone number
@@ -468,13 +476,19 @@ def run_automation(phone_numbers, message_template, message_count, wait_time):
         print(f"Waiting {wait_time} seconds before next contact...")
         time.sleep(wait_time)
 
-    # Display completion message
-    status_placeholder.success("Automation completed!")
-    print("Automation completed!")
-    st.session_state.is_running = False
+    # Mark automation as completed but keep browser open
+    status_placeholder.success(
+        "Automation completed! Browser remains open for further use."
+    )
+    print("Automation completed! Browser remains open for further use.")
 
-    # Final rerun to update the UI with all results
-    st.rerun()
+    # Set states to indicate completion
+    st.session_state.is_running = False
+    st.session_state.completed = True
+    st.session_state.last_completed_instance = current_instance
+
+    # Exit the function to prevent any further processing
+    return
 
 
 # Main app layout
@@ -486,6 +500,12 @@ if not st.session_state.is_running:
     with col2:
         if st.button("🔄", help="Refresh the status table"):
             st.rerun()
+
+# Check if we need to prevent automation from running again
+# This handles the case where Streamlit reruns the script after completion
+if "last_completed_instance" in st.session_state and st.session_state.completed:
+    if st.session_state.last_completed_instance == st.session_state.automation_instance:
+        st.session_state.is_running = False
 
 # Tabs for different sections
 tab1, tab2 = st.tabs(["Automation", "Status"])
@@ -551,20 +571,42 @@ with tab1:
             step=0.5,
         )
 
-    # Start/Stop button
+    # Start/Stop button and browser control
+    col1, col2 = st.columns(2)
+
     if st.session_state.is_running:
-        stop_button = st.button("Stop Automation", type="primary")
-        if stop_button:
+        if col1.button("Stop Automation", type="primary"):
             st.session_state.is_running = False
-            # Use the browser from session state
-            if st.session_state.browser is not None:
+            st.rerun()
+    else:
+        # Only show browser controls when not running automation
+        if st.session_state.browser is not None:
+            # Browser is open
+            if col1.button("Close Browser", type="secondary"):
                 try:
                     st.session_state.browser.quit()
                     st.session_state.browser = None
+                    st.success("Browser closed successfully")
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error closing browser: {str(e)}")
-            st.rerun()
-    else:
+
+            if col2.button("Reset Browser", help="Close and reopen browser"):
+                try:
+                    st.session_state.browser.quit()
+                    st.session_state.browser = None
+                    initialize_browser()
+                    st.success("Browser reset successfully")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error resetting browser: {str(e)}")
+        else:
+            # No browser open
+            if col1.button("Initialize Browser"):
+                initialize_browser()
+                st.rerun()
+
+        # Start automation button
         start_button = st.button("Start Automation", type="primary")
 
 # Main content area
@@ -608,6 +650,13 @@ with tab2:
     else:
         st.info("No phone numbers processed yet.")
 
+# Create keys to track automation state across Streamlit reruns
+if "automation_instance" not in st.session_state:
+    st.session_state.automation_instance = 0
+
+if "last_completed_instance" not in st.session_state:
+    st.session_state.last_completed_instance = -1
+
 # Handle the start button click
 if not st.session_state.is_running and start_button:
     # Parse phone numbers
@@ -618,7 +667,11 @@ if not st.session_state.is_running and start_button:
     if not phone_numbers:
         st.error("Please enter at least one phone number.")
     else:
+        # Reset the completion flag when starting new automation
         st.session_state.is_running = True
+        st.session_state.completed = False
+        # Increment automation instance to track this specific run
+        st.session_state.automation_instance += 1
 
         # Create a new CSV file for this run
         st.session_state.csv_path = (
